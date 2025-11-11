@@ -1,4 +1,4 @@
-const { z } = require("zod");
+const { z, property } = require("zod");
 
 // Validation schemas
 const registerSchema = z.object({
@@ -10,6 +10,21 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
   password: z.string().min(1, "Password is required"),
+});
+
+const propertySchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  address: z.string().min(1, "Address is required"),
+  price: z.number().nonnegative("Price must be a non-negative number"),
+});
+
+const propertyUpdateSchema = z.object({
+  title: z.string().min(1, "Title is required").optional(),
+  description: z.string().min(1, "Description is required").optional(),
+  address: z.string().min(1, "Address is required").optional(),
+  price: z.number().nonnegative("Price must be a non-negative number").optional(),
+  status: z.enum(["available", "sold", "pending"]).optional(),
 });
 
 const orderSchema = z.object({
@@ -53,17 +68,24 @@ const changePasswordSchema = z.object({
 // Validation middleware factory
 const validate = (schema) => {
   return (req, res, next) => {
+    let errors = [];
     try {
       const validatedData = schema.parse(req.body);
       req.body = validatedData;
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const errors = error.errors.map((err) => ({
+        if(error?.errors){
+          errors = error.errors.map((err) => ({
           field: err.path.join("."),
           message: err.message,
         }));
-
+        }else if(error.message){
+          errors = JSON.parse(error.message).map((err) => ({
+            field: err.path.join("."),
+            message: err.message,
+          }));
+        }
         return res.status(400).json({
           success: false,
           error: "Validation failed",
@@ -88,10 +110,17 @@ const validateQuery = (schema) => {
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const errors = error.errors.map((err) => ({
-          field: err.path.join("."),
-          message: err.message,
-        }));
+         if (error?.errors) {
+           errors = error.errors.map((err) => ({
+             field: err.path.join("."),
+             message: err.message,
+           }));
+         } else if (error.message) {
+           errors = JSON.parse(error.message).map((err) => ({
+             field: err.path.join("."),
+             message: err.message,
+           }));
+         }
 
         return res.status(400).json({
           success: false,
@@ -114,6 +143,12 @@ const paginationSchema = z.object({
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
   sort: z.string().optional(),
   order: z.enum(["asc", "desc"]).optional(),
+});
+
+const propertyQuerySchema = z.object({
+  status: z.enum(["available", "sold", "pending"]).optional(),
+  page: z.string().regex(/^\d+$/).transform(Number).optional(),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
 
 const marketQuerySchema = z.object({
@@ -216,9 +251,13 @@ const validateAmount = (req, res, next) => {
   next();
 };
 
+ 
 module.exports = {
   registerSchema,
   loginSchema,
+  propertySchema,
+  propertyUpdateSchema,
+  propertyQuerySchema,
   orderSchema,
   depositSchema,
   withdrawalSchema,

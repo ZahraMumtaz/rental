@@ -13,6 +13,7 @@ const userRoutes = require("./routes/users");
 const marketRoutes = require("./routes/markets");
 const productRoutes = require("./routes/product");
 const walletRoutes = require("./routes/wallet");
+const propertyRoutes = require("./routes/property");
 
 // Load environment variables
 dotenv.config();
@@ -60,6 +61,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/markets", marketRoutes);
 app.use("/api/product", productRoutes);
 app.use("/api/wallet", walletRoutes);
+app.use("/api/properties", propertyRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -74,16 +76,16 @@ app.get("/api/health", (req, res) => {
 // API-only server - no static file serving
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error("Error:", err.stack);
-  res.status(500).json({
-    error: "Something went wrong!",
-    message:
-      process.env.NODE_ENV === "development"
-        ? err.message
-        : "Internal server error",
-  });
-});
+// app.use((err, req, res, next) => {
+//   console.error("Error:", err.stack);
+//   res.status(500).json({
+//     error: "Something went wrong!",
+//     message:
+//       process.env.NODE_ENV === "development"
+//         ? err.message
+//         : "Internal server error",
+//   });
+// });
 
 // 404 handler
 app.use("*", (req, res) => {
